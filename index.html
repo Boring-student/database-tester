@@ -1,0 +1,31 @@
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<button id="login">Login with Discord</button>
+<div id="stats"></div>
+
+<script>
+const supabase = window.supabase.createClient(
+  'https://pfvacscajzkltpvuhiyg.supabase.co',
+  'YOUR-ANON-KEY'            // the public anon key is fine here
+);
+
+document.getElementById('login').onclick = () =>
+  supabase.auth.signInWithOAuth({
+    provider: 'discord',
+    options: { redirectTo: window.location.href }
+  });
+
+async function load() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return;
+
+  const { data, error } = await supabase
+    .from('member_stats')
+    .select('*')
+    .maybeSingle();          // RLS already limits this to the logged-in user
+
+  document.getElementById('stats').textContent = data
+    ? `Messages: ${data.message_count} | Joined: ${new Date(data.joined_at).toLocaleDateString()}`
+    : 'No stats found for your account.';
+}
+load();
+</script>
