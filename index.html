@@ -18,14 +18,17 @@ async function load() {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return;
 
-  const { data, error } = await supabase
-    .from('member_stats')
-    .select('*')
-    .maybeSingle();          // RLS already limits this to the logged-in user
+  const { data, error } = await supabase.functions.invoke('member-info');
+  if (error || !data) {
+    document.getElementById('stats').textContent = 'Something went wrong.';
+    return;
+  }
 
-  document.getElementById('stats').textContent = data
-    ? `Messages: ${data.message_count} | Joined: ${new Date(data.joined_at).toLocaleDateString()}`
-    : 'No stats found for your account.';
+  document.getElementById('stats').innerHTML = `
+    Messages: ${data.stats?.message_count ?? 'n/a'}<br>
+    Joined server: ${data.joined_at ? new Date(data.joined_at).toLocaleDateString() : 'unknown'}<br>
+    Roblox: ${data.roblox_username ?? 'not linked'}
+  `;
 }
 load();
 </script>
