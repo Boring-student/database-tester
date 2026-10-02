@@ -1,34 +1,43 @@
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<button id="login">Login with Discord</button>
-<div id="stats"></div>
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>My Discord Stats</title></head>
+<body>
+  <button id="login">Login with Discord</button>
+  <div id="stats"></div>
 
-<script>
-const supabase = window.supabase.createClient(
-  'https://pfvacscajzkltpvuhiyg.supabase.co',
-  'YOUR-ANON-KEY'            // the public anon key is fine here
-);
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const sb = window.supabase.createClient(
+      'https://YOUR-PROJECT.supabase.co',
+      'YOUR-ANON-KEY'
+    );
 
-document.getElementById('login').onclick = () =>
-  supabase.auth.signInWithOAuth({
-    provider: 'discord',
-    options: { redirectTo: window.location.href }
-  });
+    document.getElementById('login').addEventListener('click', async () => {
+      const { error } = await sb.auth.signInWithOAuth({
+        provider: 'discord',
+        options: { redirectTo: window.location.origin + window.location.pathname },
+      });
+      if (error) console.error('Login error:', error);
+    });
 
-async function load() {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return;
+    async function load() {
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) return;
 
-  const { data, error } = await supabase.functions.invoke('member-info');
-  if (error || !data) {
-    document.getElementById('stats').textContent = 'Something went wrong.';
-    return;
-  }
+      const { data, error } = await sb.functions.invoke('member-info');
+      if (error || !data) {
+        document.getElementById('stats').textContent = 'Something went wrong.';
+        console.error(error);
+        return;
+      }
 
-  document.getElementById('stats').innerHTML = `
-    Messages: ${data.stats?.message_count ?? 'n/a'}<br>
-    Joined server: ${data.joined_at ? new Date(data.joined_at).toLocaleDateString() : 'unknown'}<br>
-    Roblox: ${data.roblox_username ?? 'not linked'}
-  `;
-}
-load();
-</script>
+      document.getElementById('stats').innerHTML = `
+        Messages: ${data.stats?.message_count ?? 'n/a'}<br>
+        Joined server: ${data.joined_at ? new Date(data.joined_at).toLocaleDateString() : 'unknown'}<br>
+        Roblox: ${data.roblox_username ?? 'not linked'}
+      `;
+    }
+    load();
+  </script>
+</body>
+</html>
