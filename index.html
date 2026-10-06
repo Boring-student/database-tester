@@ -15,7 +15,7 @@
 
     document.getElementById('login').addEventListener('click', async () => {
       const { error } = await sb.auth.signInWithOAuth({
-        provider: 'custom:discord',
+        provider: 'discord',
         options: { redirectTo: window.location.origin + window.location.pathname },
       });
       if (error) console.error('Login error:', error);
