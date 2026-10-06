@@ -3,6 +3,7 @@
 <head><meta charset="utf-8"><title>My Discord Stats</title></head>
 <body>
   <button id="login">Login with Discord</button>
+  <button id="login-roblox">Login with Roblox</button>
   <div id="stats"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -19,6 +20,12 @@
       });
       if (error) console.error('Login error:', error);
     });
+    document.getElementById('login-roblox').addEventListener('click', () =>
+      sb.auth.signInWithOAuth({
+        provider: 'custom:roblox',
+        options: { redirectTo: window.location.origin + window.location.pathname },
+      })
+    );
 
     async function load() {
       const { data: { session } } = await sb.auth.getSession();
