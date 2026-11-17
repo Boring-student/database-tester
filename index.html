@@ -3,7 +3,6 @@
 <head><meta charset="utf-8"><title>My Discord Stats</title></head>
 <body>
   <button id="login">Login with Discord</button>
-  <button id="login-roblox">Login with Roblox</button>
   <div id="stats"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -14,11 +13,8 @@
     );
 
     // Cache the Discord provider_token as soon as it's available.
-    // It's only present in the session immediately after the OAuth redirect,
-    // and is lost on page reload / getSession() restore.
     sb.auth.onAuthStateChange((event, session) => {
-      if (session?.provider_token && session.provider_refresh_token !== undefined) {
-        // Only cache the Discord token (Roblox logins won't have one)
+      if (session?.provider_token) {
         const isDiscord = session.user?.identities?.some(
           (i) => i.provider === 'discord' || i.provider === 'custom:discord',
         );
@@ -33,42 +29,96 @@
         provider: 'discord',
         options: {
           redirectTo: window.location.origin + window.location.pathname,
-          // 👇 this is the key change
           scopes: 'identify guilds guilds.members.read',
         },
       });
       if (error) console.error('Login error:', error);
     });
 
-    document.getElementById('login-roblox').addEventListener('click', () =>
-      sb.auth.signInWithOAuth({
-        provider: 'custom:roblox',
-        options: { redirectTo: window.location.origin + window.location.pathname },
-      })
-    );
+    /** Renders the RoVer-style account line from the API response. */
+    function renderRobloxLine(data) {
+      const display = data.roblox_display_name;
+      const username = data.roblox_username;
+      const raw = data.roblox_nick_raw;
+
+      if (display && username) {
+        // Both parts parsed — the happy path
+        return `Roblox: <strong>${escapeHtml(display)}</strong> (@${escapeHtml(username)})`;
+      }
+      if (raw) {
+        // Nick is set but doesn't match RoVer's format — show raw + warning
+        return `Roblox: ${escapeHtml(raw)} <small>(nick not in RoVer format)</small>`;
+      }
+      return 'Roblox: not linked';
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, (c) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+      })[c]);
+    }
 
     async function load() {
       const { data: { session } } = await sb.auth.getSession();
       if (!session) return;
 
-      // Prefer the live session value; fall back to the cached one
       const providerToken =
         session.provider_token || sessionStorage.getItem('discord_provider_token');
+
+      const statsEl = document.getElementById('stats');
+      statsEl.textContent = 'Loading…';
 
       const { data, error } = await sb.functions.invoke('member-info', {
         body: { provider_token: providerToken },
       });
-      if (error || !data) {
-        document.getElementById('stats').textContent = 'Something went wrong.';
-        console.error(error);
+
+      // Handle non-2xx responses
+      if (error) {
+        let body = data;
+        try {
+          if (!body && error.context?.body) {
+            body = await new Response(error.context.body).json();
+          }
+        } catch { /* ignore */ }
+
+        if (body?.error === 'discord_login_required') {
+          statsEl.textContent =
+            'Please log in with Discord to view your stats.';
+        } else if (body?.error === 'not_linked') {
+          statsEl.textContent = 'Your Discord account could not be resolved.';
+        } else if (body?.error === 'Not logged in') {
+          statsEl.textContent = 'Please log in.';
+        } else {
+          statsEl.textContent = 'Something went wrong.';
+          console.error(error, body);
+        }
         return;
       }
 
-      document.getElementById('stats').innerHTML = `
+      if (!data) {
+        statsEl.textContent = 'Something went wrong.';
+        return;
+      }
+
+      const notice = providerToken
+        ? ''
+        : '<br><small>Session expired — <a href="#" id="relogin">log in with Discord again</a> to refresh this data.</small>';
+
+      statsEl.innerHTML = `
         Messages: ${data.stats?.message_count ?? 'n/a'}<br>
         Joined server: ${data.joined_at ? new Date(data.joined_at).toLocaleDateString() : 'unknown'}<br>
-        Roblox: ${data.roblox_username ?? 'not linked'}
+        ${renderRobloxLine(data)}
+        ${notice}
       `;
+
+      const relogin = document.getElementById('relogin');
+      if (relogin) {
+        relogin.addEventListener('click', (e) => {
+          e.preventDefault();
+          sessionStorage.removeItem('discord_provider_token');
+          document.getElementById('login').click();
+        });
+      }
     }
     load();
   </script>
