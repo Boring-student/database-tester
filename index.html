@@ -13,13 +13,33 @@
       'sb_publishable_bcz9sKLDhnY7ibUMXcxlDA_EbkADbp3'
     );
 
+    // Cache the Discord provider_token as soon as it's available.
+    // It's only present in the session immediately after the OAuth redirect,
+    // and is lost on page reload / getSession() restore.
+    sb.auth.onAuthStateChange((event, session) => {
+      if (session?.provider_token && session.provider_refresh_token !== undefined) {
+        // Only cache the Discord token (Roblox logins won't have one)
+        const isDiscord = session.user?.identities?.some(
+          (i) => i.provider === 'discord' || i.provider === 'custom:discord',
+        );
+        if (isDiscord) {
+          sessionStorage.setItem('discord_provider_token', session.provider_token);
+        }
+      }
+    });
+
     document.getElementById('login').addEventListener('click', async () => {
       const { error } = await sb.auth.signInWithOAuth({
         provider: 'discord',
-        options: { redirectTo: window.location.origin + window.location.pathname },
+        options: {
+          redirectTo: window.location.origin + window.location.pathname,
+          // 👇 this is the key change
+          scopes: 'identify guilds guilds.members.read',
+        },
       });
       if (error) console.error('Login error:', error);
     });
+
     document.getElementById('login-roblox').addEventListener('click', () =>
       sb.auth.signInWithOAuth({
         provider: 'custom:roblox',
@@ -31,7 +51,13 @@
       const { data: { session } } = await sb.auth.getSession();
       if (!session) return;
 
-      const { data, error } = await sb.functions.invoke('member-info');
+      // Prefer the live session value; fall back to the cached one
+      const providerToken =
+        session.provider_token || sessionStorage.getItem('discord_provider_token');
+
+      const { data, error } = await sb.functions.invoke('member-info', {
+        body: { provider_token: providerToken },
+      });
       if (error || !data) {
         document.getElementById('stats').textContent = 'Something went wrong.';
         console.error(error);
