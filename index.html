@@ -40,7 +40,49 @@
       })[c]);
     }
 
-    /** Renders the RoVer-style account line from the API response. */
+    /** Returns inline CSS for a role's color/gradient text. */
+    function roleTextStyle(color, gradient) {
+      if (gradient) {
+        return `background:${escapeHtml(gradient)};-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;font-weight:600;`;
+      }
+      if (color) {
+        return `color:${escapeHtml(color)};font-weight:600;`;
+      }
+      return 'font-weight:600;';
+    }
+
+    /** Returns inline CSS for the colored dot next to the role name. */
+    function roleDotStyle(color, gradient) {
+      if (gradient) return `background:${escapeHtml(gradient)};`;
+      if (color) return `background:${escapeHtml(color)};`;
+      return 'background:#888;';
+    }
+
+    function renderMembership(data) {
+      const tier = data.tier || 'none';
+      const name = data.role_name;
+      const color = data.role_color;
+      const gradient = data.role_gradient;
+
+      if (tier === 'none' || !name) {
+        return 'Membership: none';
+      }
+
+      const dot = `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle;${roleDotStyle(color, gradient)}"></span>`;
+      const text = `<span style="${roleTextStyle(color, gradient)}">${escapeHtml(name)}</span>`;
+
+      return `Membership: ${dot}${text}`;
+    }
+
+    /** Booster is rendered on its own line, separate from membership. */
+    function renderBooster(data) {
+      if (!data.is_booster) return '';
+      const since = data.boosting_since
+        ? ` — boosting since ${new Date(data.boosting_since).toLocaleDateString()}`
+        : '';
+      return `<br>Booster: <span style="color:#FF73FA;font-weight:600;">⚡ Nitro Booster</span>${escapeHtml(since)}`;
+    }
+
     function renderRobloxLine(data) {
       const display = data.roblox_display_name;
       const username = data.roblox_username;
@@ -53,33 +95,6 @@
         return `Roblox: ${escapeHtml(raw)} <small>(nick not in RoVer format)</small>`;
       }
       return 'Roblox: not linked';
-    }
-
-    /** Renders membership tier + booster badge. */
-    function renderMembership(data) {
-      const tier = data.tier || 'none';
-      const name = data.role_name;
-      const color = data.role_color;
-
-      const parts = [];
-
-      if (tier !== 'none' && name) {
-        const dot = color
-          ? `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${escapeHtml(color)};margin-right:6px;vertical-align:middle;"></span>`
-          : '';
-        parts.push(`${dot}<strong>${escapeHtml(name)}</strong>`);
-      } else {
-        parts.push('none');
-      }
-
-      if (data.is_booster) {
-        const title = data.boosting_since
-          ? `Boosting since ${new Date(data.boosting_since).toLocaleDateString()}`
-          : 'Nitro Booster';
-        parts.push(`<span title="${escapeHtml(title)}" style="color:#FF73FA;">⚡ Booster</span>`);
-      }
-
-      return `Membership: ${parts.join(' · ')}`;
     }
 
     async function load() {
@@ -129,7 +144,7 @@
       statsEl.innerHTML = `
         Messages: ${data.stats?.message_count ?? 'n/a'}<br>
         Joined server: ${data.joined_at ? new Date(data.joined_at).toLocaleDateString() : 'unknown'}<br>
-        ${renderMembership(data)}<br>
+        ${renderMembership(data)}${renderBooster(data)}<br>
         ${renderRobloxLine(data)}
         ${notice}
       `;
