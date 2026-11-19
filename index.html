@@ -12,7 +12,6 @@
       'sb_publishable_bcz9sKLDhnY7ibUMXcxlDA_EbkADbp3'
     );
 
-    // Cache the Discord provider_token as soon as it's available.
     sb.auth.onAuthStateChange((event, session) => {
       if (session?.provider_token) {
         const isDiscord = session.user?.identities?.some(
@@ -35,6 +34,12 @@
       if (error) console.error('Login error:', error);
     });
 
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, (c) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+      })[c]);
+    }
+
     /** Renders the RoVer-style account line from the API response. */
     function renderRobloxLine(data) {
       const display = data.roblox_display_name;
@@ -42,20 +47,39 @@
       const raw = data.roblox_nick_raw;
 
       if (display && username) {
-        // Both parts parsed — the happy path
         return `Roblox: <strong>${escapeHtml(display)}</strong> (@${escapeHtml(username)})`;
       }
       if (raw) {
-        // Nick is set but doesn't match RoVer's format — show raw + warning
         return `Roblox: ${escapeHtml(raw)} <small>(nick not in RoVer format)</small>`;
       }
       return 'Roblox: not linked';
     }
 
-    function escapeHtml(s) {
-      return String(s).replace(/[&<>"']/g, (c) => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-      })[c]);
+    /** Renders membership tier + booster badge. */
+    function renderMembership(data) {
+      const tier = data.tier || 'none';
+      const name = data.role_name;
+      const color = data.role_color;
+
+      const parts = [];
+
+      if (tier !== 'none' && name) {
+        const dot = color
+          ? `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${escapeHtml(color)};margin-right:6px;vertical-align:middle;"></span>`
+          : '';
+        parts.push(`${dot}<strong>${escapeHtml(name)}</strong>`);
+      } else {
+        parts.push('none');
+      }
+
+      if (data.is_booster) {
+        const title = data.boosting_since
+          ? `Boosting since ${new Date(data.boosting_since).toLocaleDateString()}`
+          : 'Nitro Booster';
+        parts.push(`<span title="${escapeHtml(title)}" style="color:#FF73FA;">⚡ Booster</span>`);
+      }
+
+      return `Membership: ${parts.join(' · ')}`;
     }
 
     async function load() {
@@ -72,7 +96,6 @@
         body: { provider_token: providerToken },
       });
 
-      // Handle non-2xx responses
       if (error) {
         let body = data;
         try {
@@ -82,8 +105,7 @@
         } catch { /* ignore */ }
 
         if (body?.error === 'discord_login_required') {
-          statsEl.textContent =
-            'Please log in with Discord to view your stats.';
+          statsEl.textContent = 'Please log in with Discord to view your stats.';
         } else if (body?.error === 'not_linked') {
           statsEl.textContent = 'Your Discord account could not be resolved.';
         } else if (body?.error === 'Not logged in') {
@@ -107,6 +129,7 @@
       statsEl.innerHTML = `
         Messages: ${data.stats?.message_count ?? 'n/a'}<br>
         Joined server: ${data.joined_at ? new Date(data.joined_at).toLocaleDateString() : 'unknown'}<br>
+        ${renderMembership(data)}<br>
         ${renderRobloxLine(data)}
         ${notice}
       `;
