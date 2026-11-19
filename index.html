@@ -74,13 +74,22 @@
       return `Membership: ${dot}${text}`;
     }
 
-    /** Booster is rendered on its own line, separate from membership. */
     function renderBooster(data) {
       if (!data.is_booster) return '';
+
+      const name = data.booster_name || 'Nitro Booster';
+      const color = data.booster_color;
+      const gradient = data.booster_gradient;
+
+      // Reuse the same style helpers as the tier role
+      const dot = `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle;${roleDotStyle(color || '#FF73FA', gradient)}"></span>`;
+      const text = `<span style="${roleTextStyle(color || '#FF73FA', gradient)}">⚡ ${escapeHtml(name)}</span>`;
+
       const since = data.boosting_since
-        ? ` — boosting since ${new Date(data.boosting_since).toLocaleDateString()}`
+        ? ` <small>— boosting since ${new Date(data.boosting_since).toLocaleDateString()}</small>`
         : '';
-      return `<br>Booster: <span style="color:#FF73FA;font-weight:600;">⚡ Nitro Booster</span>${escapeHtml(since)}`;
+
+      return `<br>Booster: ${dot}${text}${since}`;
     }
 
     function renderRobloxLine(data) {
