@@ -1,9 +1,135 @@
 <!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><title>My Discord Stats</title></head>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Discord Stats</title>
+  <style>
+    :root {
+      --blurple: #5865F2;
+      --blurple-hover: #4752C4;
+      --bg-dark: #1e1f22;
+      --bg-card: #2b2d31;
+      --text-primary: #f2f3f5;
+      --text-secondary: #b5bac1;
+      --border-subtle: #3f4147;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 2rem 1rem;
+      font-family: 'gg sans', 'Noto Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-primary);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    /* Discord Brand Button (Blurple) */
+    .discord-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      width: 100%;
+      padding: 0.75rem 1.5rem;
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: 500;
+      color: #ffffff;
+      background-color: var(--blurple);
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.17s ease;
+      text-decoration: none;
+    }
+    .discord-btn:hover { background-color: var(--blurple-hover); }
+    .discord-btn:focus-visible {
+      outline: 2px solid #ffffff;
+      outline-offset: 2px;
+    }
+    .discord-btn svg {
+      width: 24px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+
+    /* Stats Card */
+    #stats {
+      background-color: var(--bg-card);
+      border-radius: 12px;
+      padding: 1.5rem;
+      border: 1px solid var(--border-subtle);
+      line-height: 1.7;
+      font-size: 0.95rem;
+    }
+    #stats:empty { display: none; }
+
+    .stat-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .stat-row:last-child { border-bottom: none; }
+    .stat-label { color: var(--text-secondary); }
+    .stat-value { font-weight: 500; text-align: right; }
+
+    .role-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      justify-content: flex-end;
+    }
+    .role-dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .notice {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      text-align: center;
+      margin-top: 0.5rem;
+    }
+    .notice a {
+      color: var(--blurple);
+      text-decoration: none;
+    }
+    .notice a:hover { text-decoration: underline; }
+
+    .small-text { font-size: 0.85rem; color: var(--text-secondary); }
+  </style>
+</head>
 <body>
-  <button id="login">Login with Discord</button>
-  <div id="stats"></div>
+  <div class="container">
+    <!-- Discord Login Button (Blurple style per Discord brand guidelines) -->
+    <button id="login" class="discord-btn" aria-label="Login with Discord">
+      <svg viewBox="0 0 256 199" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M216.856 16.597A208.502 208.502 0 0 0 164.042 0c-2.275 4.113-4.933 9.645-6.766 14.046-19.692-2.961-39.203-2.961-58.533 0-1.832-4.4-4.55-9.933-6.846-14.046a207.809 207.809 0 0 0-52.855 16.638C5.618 67.147-3.443 116.4 1.087 164.956c22.169 16.555 43.653 26.612 64.775 33.193A161.094 161.094 0 0 0 79.735 175.3a136.413 136.413 0 0 1-21.846-10.632 108.636 108.636 0 0 0 5.356-4.237c42.122 19.702 87.89 19.702 129.51 0a131.66 131.66 0 0 0 5.355 4.237 136.07 136.07 0 0 1-21.886 10.653c4.006 8.02 8.638 15.67 13.873 22.848 21.142-6.58 42.646-16.637 64.815-33.213 5.316-56.288-9.08-105.09-38.056-148.36ZM85.474 135.095c-12.645 0-23.015-11.805-23.015-26.18s10.149-26.2 23.015-26.2c12.867 0 23.236 11.804 23.015 26.2.02 14.375-10.148 26.18-23.015 26.18Zm85.051 0c-12.645 0-23.014-11.805-23.014-26.18s10.148-26.2 23.014-26.2c12.867 0 23.236 11.804 23.015 26.2 0 14.375-10.148 26.18-23.015 26.18Z" fill="currentColor"/>
+      </svg>
+      <span>Login with Discord</span>
+    </button>
+
+    <div id="stats"></div>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
@@ -40,7 +166,6 @@
       })[c]);
     }
 
-    /** Returns inline CSS for a role's color/gradient text. */
     function roleTextStyle(color, gradient) {
       if (gradient) {
         return `background:${escapeHtml(gradient)};-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;font-weight:600;`;
@@ -51,59 +176,54 @@
       return 'font-weight:600;';
     }
 
-    /** Returns inline CSS for the colored dot next to the role name. */
     function roleDotStyle(color, gradient) {
       if (gradient) return `background:${escapeHtml(gradient)};`;
       if (color) return `background:${escapeHtml(color)};`;
       return 'background:#888;';
     }
 
-    function renderMembership(data) {
-      const tier = data.tier || 'none';
-      const name = data.role_name;
-      const color = data.role_color;
-      const gradient = data.role_gradient;
-
-      if (tier === 'none' || !name) {
-        return 'Membership: none';
-      }
-
-      const dot = `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle;${roleDotStyle(color, gradient)}"></span>`;
-      const text = `<span style="${roleTextStyle(color, gradient)}">${escapeHtml(name)}</span>`;
-
-      return `Membership: ${dot}${text}`;
+    function renderRoleIndicator(name, color, gradient, icon = '') {
+      const dot = `<span class="role-dot" style="${roleDotStyle(color, gradient)}"></span>`;
+      const text = `<span style="${roleTextStyle(color, gradient)}">${icon}${escapeHtml(name)}</span>`;
+      return `<span class="role-indicator">${dot}${text}</span>`;
     }
 
-    function renderBooster(data) {
-      if (!data.is_booster) return '';
+    function renderStats(data) {
+      const rows = [];
 
-      const name = data.booster_name || 'Nitro Booster';
-      const color = data.booster_color;
-      const gradient = data.booster_gradient;
+      // Messages
+      const msgCount = data.stats?.message_count ?? 'n/a';
+      rows.push(`<div class="stat-row"><span class="stat-label">Messages</span><span class="stat-value">${escapeHtml(msgCount)}</span></div>`);
 
-      // Reuse the same style helpers as the tier role
-      const dot = `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle;${roleDotStyle(color || '#FF73FA', gradient)}"></span>`;
-      const text = `<span style="${roleTextStyle(color || '#FF73FA', gradient)}">⚡ ${escapeHtml(name)}</span>`;
+      // Joined Server
+      const joined = data.joined_at ? new Date(data.joined_at).toLocaleDateString() : 'unknown';
+      rows.push(`<div class="stat-row"><span class="stat-label">Joined server</span><span class="stat-value">${escapeHtml(joined)}</span></div>`);
 
-      const since = data.boosting_since
-        ? ` <small>— boosting since ${new Date(data.boosting_since).toLocaleDateString()}</small>`
-        : '';
-
-      return `<br>Booster: ${dot}${text}${since}`;
-    }
-
-    function renderRobloxLine(data) {
-      const display = data.roblox_display_name;
-      const username = data.roblox_username;
-      const raw = data.roblox_nick_raw;
-
-      if (display && username) {
-        return `Roblox: <strong>${escapeHtml(display)}</strong> (@${escapeHtml(username)})`;
+      // Membership
+      let membershipHtml = 'none';
+      if (data.tier && data.tier !== 'none' && data.role_name) {
+        membershipHtml = renderRoleIndicator(data.role_name, data.role_color, data.role_gradient);
       }
-      if (raw) {
-        return `Roblox: ${escapeHtml(raw)} <small>(nick not in RoVer format)</small>`;
+      rows.push(`<div class="stat-row"><span class="stat-label">Membership</span><span class="stat-value">${membershipHtml}</span></div>`);
+
+      // Booster (only if true)
+      if (data.is_booster) {
+        const boosterName = data.booster_name || 'Nitro Booster';
+        const boosterHtml = renderRoleIndicator(boosterName, data.booster_color || '#FF73FA', data.booster_gradient, '⚡ ');
+        const since = data.boosting_since ? ` <span class="small-text">(since ${new Date(data.boosting_since).toLocaleDateString()})</span>` : '';
+        rows.push(`<div class="stat-row"><span class="stat-label">Booster</span><span class="stat-value">${boosterHtml}${since}</span></div>`);
       }
-      return 'Roblox: not linked';
+
+      // Roblox
+      let robloxHtml = 'not linked';
+      if (data.roblox_display_name && data.roblox_username) {
+        robloxHtml = `<strong>${escapeHtml(data.roblox_display_name)}</strong> (@${escapeHtml(data.roblox_username)})`;
+      } else if (data.roblox_nick_raw) {
+        robloxHtml = `${escapeHtml(data.roblox_nick_raw)} <span class="small-text">(nick not in RoVer format)</span>`;
+      }
+      rows.push(`<div class="stat-row"><span class="stat-label">Roblox</span><span class="stat-value">${robloxHtml}</span></div>`);
+
+      return rows.join('');
     }
 
     async function load() {
@@ -148,15 +268,9 @@
 
       const notice = providerToken
         ? ''
-        : '<br><small>Session expired — <a href="#" id="relogin">log in with Discord again</a> to refresh this data.</small>';
+        : '<div class="notice">Session expired — <a href="#" id="relogin">log in with Discord again</a> to refresh this data.</div>';
 
-      statsEl.innerHTML = `
-        Messages: ${data.stats?.message_count ?? 'n/a'}<br>
-        Joined server: ${data.joined_at ? new Date(data.joined_at).toLocaleDateString() : 'unknown'}<br>
-        ${renderMembership(data)}${renderBooster(data)}<br>
-        ${renderRobloxLine(data)}
-        ${notice}
-      `;
+      statsEl.innerHTML = renderStats(data) + notice;
 
       const relogin = document.getElementById('relogin');
       if (relogin) {
